@@ -2,6 +2,7 @@ import os
 import click
 from lxml import etree
 from collections import defaultdict
+from operator import attrgetter
 
 
 template = """
@@ -70,22 +71,22 @@ class WorkItemCache(object):
 
 
 class TestCase(object):
-    def __init__(self, tc_id, name, params=None):
+    def __init__(self, tc_id, title, params=None):
         self.tc_id = tc_id
-        self.name = name
-        self.params = params
+        self.title = title
+        self.params = params or {}
         self.hash_string = None
 
-    def __hash__(self):
-        if not self.hash_string:
-            hash_string = "{}{}".format(self.tc_id, self.name)
-            for param, value in self.params.iteritems():
-                hash_string = "{}{}{}".format(hash_string, param, value)
-            self.hash_string = hash_string
-        return self.hash_string
+#    def __hash__(self):
+#        if not self.hash_string:
+#            hash_string = "{}{}".format(self.tc_id, self.name)
+#            for param, value in self.params.iteritems():
+#                hash_string = "{}{}{}".format(hash_string, param, value)
+#            self.hash_string = hash_string
+#        return self.hash_string
 
-    def __repr__(self):
-        return self.__hash__()
+#    def __repr__(self):
+#        return self.__hash__()
 
 
 class PolarionReporter(object):
@@ -135,7 +136,8 @@ class PolarionReporter(object):
                     real_res = res[0].text
                 else:
                     real_res = "skipped"
-                results[tc_id][trfile] = real_res
+
+                results[testcase_obj][trfile] = real_res
                 c += 1
         print "Processed {} unique results".format(c)
         return runs, results
@@ -156,20 +158,27 @@ class PolarionReporter(object):
         comp_title = etree.Element("td")
         comp_title.text = "Composite"
         header_row.append(comp_title)
+        param_title = etree.Element("td")
+        param_title.text = "Parameters"
+        header_row.append(param_title)
         for run in runs:
             run_title = etree.Element("td")
             run_title.text = run
             header_row.append(run_title)
         table.append(header_row)
-        for test_case in sorted(results.keys()):
+
+        for test_case in sorted(results.keys(), key=attrgetter('tc_id')):
+            test_case_id = test_case.tc_id
+            test_case_title = test_case.title
+            params = test_case.params
             try:
-                if user_filter and not self.wi_cache[test_case]['assignee'] == user_filter:
+                if user_filter and not self.wi_cache[test_case_id]['assignee'] == user_filter:
                     continue
             except:
-                print 'WARNING: Malformed Test Case: {}'.format(test_case)
+                print 'WARNING: Malformed Test Case: {}'.format(test_case_id)
             case_row = etree.Element("tr")
             case_title = etree.Element("td")
-            case_title.text = test_case
+            case_title.text = "{} ({})".format(test_case_id, test_case_title)
             case_row.append(case_title)
             results[test_case]['composite'] = "N/A"
             for run in runs:
@@ -185,12 +194,24 @@ class PolarionReporter(object):
             composite_res.text = results[test_case]['composite']
             composite_res.attrib['class'] = results[test_case]['composite']
             importance = etree.Element("td")
-            importance.text = self.wi_cache[test_case].get('caseimportance')
+            importance.text = self.wi_cache[test_case_id].get('caseimportance')
             if (results[test_case]['composite'] == "N/A" and
-                    self.wi_cache[test_case].get('caseimportance') in ['high', 'critical']):
+                    self.wi_cache[test_case_id].get('caseimportance') in ['high', 'critical']):
                 case_title.attrib['class'] = 'bad_test'
+            param_res = etree.Element("td")
+            for param, value in params.iteritems():
+                t_param = etree.Element("strong")
+                t_param.text = "{}: ".format(param)
+                param_res.append(t_param)
+                v_param = etree.Element("em")
+                v_param.text = value
+                param_res.append(v_param)
+                lb = etree.Element("br")
+                param_res.append(lb)
+
             case_row.insert(1, importance)
             case_row.insert(2, composite_res)
+            case_row.insert(3, param_res)
 
             table.append(case_row)
         body.append(table)
