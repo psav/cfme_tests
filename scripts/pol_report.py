@@ -1,4 +1,5 @@
 import os
+import re
 import click
 from lxml import etree
 from collections import defaultdict
@@ -75,18 +76,12 @@ class TestCase(object):
         self.tc_id = tc_id
         self.title = title
         self.params = params or {}
-        self.hash_string = None
 
-#    def __hash__(self):
-#        if not self.hash_string:
-#            hash_string = "{}{}".format(self.tc_id, self.name)
-#            for param, value in self.params.iteritems():
-#                hash_string = "{}{}{}".format(hash_string, param, value)
-#            self.hash_string = hash_string
-#        return self.hash_string
+    def __eq__(self, y):
+        return self.__dict__ == y.__dict__
 
-#    def __repr__(self):
-#        return self.__hash__()
+    def __hash__(self):
+        return hash(str(self.__dict__))
 
 
 class PolarionReporter(object):
@@ -107,7 +102,7 @@ class PolarionReporter(object):
                 print e
                 print "failed"
             group = tree.xpath('/test-run/field[@id="groupId"]')
-            if group_id and (not group or not group[0].text == group_id):
+            if group_id and (not group or not re.match(group_id, group[0].text)):
                 continue
             if run_id and trfile != run_id:
                 continue
@@ -124,11 +119,13 @@ class PolarionReporter(object):
                                 'item[@id="rawValue"]')[0].text
                     except:
                         print "WARNING: Test Case {} was malformed".format(tc_id)
-                testcase_obj = TestCase(tc_id, self.wi_cache[tc_id]['title'], params=param_dict)
-                print testcase_obj
 
                 if not self.wi_cache[tc_id]:
                     continue
+                if 'title' not in self.wi_cache[tc_id]:
+                    continue
+                testcase_obj = TestCase(tc_id, self.wi_cache[tc_id]['title'], params=param_dict)
+
                 # if user_filter and not cases[tc_id]['assignee'] == user_filter:
                 #    continue
                 res = result.xpath('item[@id="result"]')
@@ -142,7 +139,8 @@ class PolarionReporter(object):
         print "Processed {} unique results".format(c)
         return runs, results
 
-    def generate_report(self, output, run_id=None, group_id=None, user_filter=None):
+    def generate_report(self, output, run_id=None, group_id=None, user_filter=None,
+                        only_unexecuted=False):
         runs, results = self.collate_runs(group_id=group_id, run_id=run_id)
         runs = sorted(runs, reverse=True)
         the_html = etree.fromstring(template)
@@ -154,6 +152,9 @@ class PolarionReporter(object):
         header_row.append(tc_title)
         comp_title = etree.Element("td")
         comp_title.text = "Importance"
+        header_row.append(comp_title)
+        comp_title = etree.Element("td")
+        comp_title.text = "Assignee"
         header_row.append(comp_title)
         comp_title = etree.Element("td")
         comp_title.text = "Composite"
@@ -178,7 +179,8 @@ class PolarionReporter(object):
                 print 'WARNING: Malformed Test Case: {}'.format(test_case_id)
             case_row = etree.Element("tr")
             case_title = etree.Element("td")
-            case_title.text = "{} ({})".format(test_case_id, test_case_title)
+            case_title.text = "{} ({})".format(
+                test_case_id, test_case_title.encode('ascii', 'ignore'))
             case_row.append(case_title)
             results[test_case]['composite'] = "N/A"
             for run in runs:
@@ -190,11 +192,17 @@ class PolarionReporter(object):
                 if results[test_case]['composite'] is "N/A":
                     if res not in ["not_added", "skipped"]:
                         results[test_case]['composite'] = res
+            if only_unexecuted and results[test_case]['composite'] is not "N/A":
+                continue
             composite_res = etree.Element("td")
             composite_res.text = results[test_case]['composite']
             composite_res.attrib['class'] = results[test_case]['composite']
             importance = etree.Element("td")
             importance.text = self.wi_cache[test_case_id].get('caseimportance')
+            importance = etree.Element("td")
+            importance.text = self.wi_cache[test_case_id].get('caseimportance')
+            assignee = etree.Element("td")
+            assignee.text = self.wi_cache[test_case_id].get('assignee')
             if (results[test_case]['composite'] == "N/A" and
                     self.wi_cache[test_case_id].get('caseimportance') in ['high', 'critical']):
                 case_title.attrib['class'] = 'bad_test'
@@ -210,8 +218,9 @@ class PolarionReporter(object):
                 param_res.append(lb)
 
             case_row.insert(1, importance)
-            case_row.insert(2, composite_res)
-            case_row.insert(3, param_res)
+            case_row.insert(2, assignee)
+            case_row.insert(3, composite_res)
+            case_row.insert(4, param_res)
 
             table.append(case_row)
         body.append(table)
@@ -229,10 +238,12 @@ class PolarionReporter(object):
 @click.option('--run-id', default=None)
 @click.option('--user-filter', default=None,
               help="Filter report by user")
-def main(svn_dir, user_filter, group_id, output, run_id):
+@click.option('--only-unexecuted', default=False, is_flag=True)
+def main(svn_dir, user_filter, group_id, output, run_id, only_unexecuted):
     """Main script"""
     reporter = PolarionReporter(svn_dir)
-    reporter.generate_report(output, group_id=group_id, run_id=run_id, user_filter=user_filter)
+    reporter.generate_report(output, group_id=group_id, run_id=run_id, user_filter=user_filter,
+                             only_unexecuted=only_unexecuted)
 
 
 if __name__ == "__main__":
