@@ -172,6 +172,8 @@ class PolarionReporter(object):
             test_case_id = test_case.tc_id
             test_case_title = test_case.title
             params = test_case.params
+            if self.wi_cache[test_case_id]['status'] == 'inactive':
+                continue
             try:
                 if user_filter and not self.wi_cache[test_case_id]['assignee'] == user_filter:
                     continue
