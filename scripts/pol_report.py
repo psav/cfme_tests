@@ -104,7 +104,7 @@ class PolarionReporter(object):
             group = tree.xpath('/test-run/field[@id="groupId"]')
             if group_id and (not group or not re.match(group_id, group[0].text)):
                 continue
-            if run_id and trfile != run_id:
+            if run_id and not re.match(run_id, trfile):
                 continue
             # print "found", trfile
             runs.append(trfile)
