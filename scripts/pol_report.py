@@ -140,7 +140,10 @@ class PolarionReporter(object):
         return runs, results
 
     def generate_report(self, output, run_id=None, group_id=None, user_filter=None,
-                        only_unexecuted=False):
+                        only_unexecuted=False, cf_filters=None):
+        if not cf_filters:
+            cf_filters = []
+        print cf_filters
         runs, results = self.collate_runs(group_id=group_id, run_id=run_id)
         runs = sorted(runs, reverse=True)
         the_html = etree.fromstring(template)
@@ -174,11 +177,18 @@ class PolarionReporter(object):
             params = test_case.params
             if self.wi_cache[test_case_id]['status'] == 'inactive':
                 continue
-            try:
-                if user_filter and not self.wi_cache[test_case_id]['assignee'] == user_filter:
-                    continue
-            except:
-                print 'WARNING: Malformed Test Case: {}'.format(test_case_id)
+
+            flag = False
+            for cf_filter in cf_filters:
+                key, val = cf_filter
+                n_val = self.wi_cache[test_case_id].get(key, None)
+                print n_val, val, re.match(val, n_val)
+                if not re.match(val, n_val):
+                    flag = True
+                    break
+            print flag
+            if flag:
+                continue
             case_row = etree.Element("tr")
             case_title = etree.Element("td")
             case_title.text = "{} ({})".format(
@@ -240,12 +250,13 @@ class PolarionReporter(object):
 @click.option('--run-id', default=None)
 @click.option('--user-filter', default=None,
               help="Filter report by user")
+@click.option('--cf-filter', nargs=2, multiple=True)
 @click.option('--only-unexecuted', default=False, is_flag=True)
-def main(svn_dir, user_filter, group_id, output, run_id, only_unexecuted):
+def main(svn_dir, user_filter, group_id, output, run_id, only_unexecuted, cf_filter):
     """Main script"""
     reporter = PolarionReporter(svn_dir)
     reporter.generate_report(output, group_id=group_id, run_id=run_id, user_filter=user_filter,
-                             only_unexecuted=only_unexecuted)
+                             only_unexecuted=only_unexecuted, cf_filters=cf_filter)
 
 
 if __name__ == "__main__":
