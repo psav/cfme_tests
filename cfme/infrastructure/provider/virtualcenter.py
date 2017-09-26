@@ -29,6 +29,10 @@ class VMwareProvider(InfraProvider):
     _ctrl_alt_del_xpath = '//*[@id="ctrlaltdel"]'
     _fullscreen_xpath = '//*[@id="fullscreen"]'
     bad_credentials_error_msg = 'Cannot complete login due to an incorrect user name or password.'
+    support = {
+        '5.7': ['6.0'],
+        '5.8': ['5.0', '5.5', '6.0', '6.5']
+    }
 
     def __init__(self, name=None, endpoints=None, key=None, zone=None, hostname=None,
                  ip_address=None, start_ip=None, end_ip=None, provider_data=None, appliance=None):
