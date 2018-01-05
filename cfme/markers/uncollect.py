@@ -52,6 +52,7 @@ Note:
 
 """
 import inspect
+
 import pytest
 
 MARKDECORATOR_TYPE = type(pytest.mark.slip)
