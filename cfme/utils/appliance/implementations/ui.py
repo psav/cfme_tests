@@ -20,7 +20,7 @@ from cfme import exceptions
 from cfme.utils.browser import manager
 from cfme.utils.log import logger, create_sublogger
 from cfme.utils.version import Version
-from cfme.utils.wait import wait_for
+from cfme.utils.wait import wait_for, TimedOutError
 from fixtures.pytest_store import store
 from . import Implementation
 
@@ -173,6 +173,13 @@ class MiqBrowserPlugin(DefaultPlugin):
         # this is temporary fix until we figure out real reason and fix it
         sleep(0.3)
         self.make_document_focused()
+
+    def after_click(self, element):
+        element = self.browser.element('//body')
+        try:
+            wait_for(lambda: element.is_displayed(), num_sec=2, fail_condition=True)
+        except (StaleElementReferenceException, TimedOutError):
+            wait_for(lambda: self.browser.element('//body').is_displayed(), num_sec=30, handle_exception=True)
 
 
 class MiqBrowser(Browser):

@@ -245,8 +245,8 @@ def pytest_runtest_teardown(item, nextitem):
         caps = app.browser.widgetastic.selenium.capabilities
         param_dict = {
             'browserName': caps['browserName'],
-            'browserPlatform': caps['platform'],
-            'browserVersion': caps['version']
+            'browserPlatform': caps.get('platform', None) or caps.get('platformName', None),
+            'browserVersion': caps.get('version', None) or caps.get('browserVersion', None)
         }
     except Exception as e:
         logger.error("Couldn't grab browser env_vars")
