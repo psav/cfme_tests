@@ -36,19 +36,20 @@ as a result. If this counter reaches a predefined number of failures (see ``SETU
 the failing provider will be added to the list of problematic providers and no further attempts
 to set it up will be made.
 """
-import pytest
 import random
-import six
+from collections import Mapping
 from collections import defaultdict
 
+import pytest
+import six
+
 from cfme.common.provider import BaseProvider, all_types
+from cfme.utils.appliance import ApplianceException
+from cfme.utils.log import logger
+from cfme.utils.providers import ProviderFilter, list_providers
 from fixtures.artifactor_plugin import fire_art_test_hook
 from fixtures.pytest_store import store
 from fixtures.templateloader import TEMPLATES
-from cfme.utils.appliance import ApplianceException
-from cfme.utils.providers import ProviderFilter, list_providers
-from cfme.utils.log import logger
-from collections import Mapping
 
 # List of problematic providers that will be ignored
 _problematic_providers = set()
@@ -215,7 +216,7 @@ def _generate_provider_fixtures():
 
     This will make fixtures like "cloud_provider" and "has_no_cloud_providers" available to tests.
     """
-    for prov_type, prov_class in all_types().iteritems():
+    for prov_type, prov_class in all_types().items():
         def gen_setup_provider(prov_class):
             @pytest.fixture(scope='function')
             def _setup_provider(request):
@@ -382,3 +383,9 @@ def console_template(provider):
 @pytest.fixture(scope="module")
 def console_template_modscope(provider):
     return _get_template(provider, 'console_template')
+
+
+@pytest.fixture(scope="function")
+def provider(provider_data):
+    from cfme.utils.providers import get_crud
+    return get_crud(provider_data.key)
