@@ -793,7 +793,10 @@ class Group(BaseEntity):
         Args:
             updated_order: group order list
         """
-        name_column = "Name"
+        if self.appliance.version >= '5.9.1':
+            name_column = "Description"
+        else:
+            name_column = "Name"
         find_row_kwargs = {name_column: self.description}
         view = navigate_to(self.parent, 'All')
         row = view.paginator.find_row_on_pages(view.table, **find_row_kwargs)

@@ -1,6 +1,7 @@
 import pytest
 
 from cfme.utils.appliance import DummyAppliance
+from cfme.utils.appliance.implementations.ui import navigate_to
 from cfme.utils.log import logger
 from cfme.utils.path import data_path
 from fixtures.artifactor_plugin import fire_art_hook
@@ -9,7 +10,11 @@ from fixtures.artifactor_plugin import fire_art_hook
 @pytest.fixture(scope="session", autouse=True)
 def ensure_websocket_role_disabled(appliance):
     # TODO: This is a temporary solution until we find something better.
-    if isinstance(appliance, DummyAppliance) or appliance.is_dev:
+    if isinstance(appliance, DummyAppliance):
+        return
+    elif appliance.is_dev:
+        view = navigate_to(appliance.server, 'Dashboard')
+        view.browser.execute_script("sessionStorage.setItem('disableDebugToasts', true)")
         return
     server_settings = appliance.server.settings
     roles = server_settings.server_roles_db
