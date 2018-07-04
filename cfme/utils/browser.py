@@ -155,6 +155,7 @@ class BrowserFactory(object):
 
         opts = Options()
         opts.log.level = "trace"
+        #opts.add_argument('-headless')
         self.browser_kwargs['options'] = opts
 
         try:

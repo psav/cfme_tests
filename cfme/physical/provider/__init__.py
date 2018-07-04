@@ -1,24 +1,22 @@
 import attr
-
 from navmazing import NavigateToAttribute, NavigateToSibling
-from widgetastic.utils import Fillable
 from widgetastic.exceptions import NoSuchElementException
+from widgetastic.utils import Fillable
 
 from cfme.base.ui import Server
-
-from cfme.utils import version
 from cfme.common.provider import BaseProvider, provider_types
 from cfme.common.provider_views import (PhysicalProviderAddView,
                                         PhysicalProvidersView,
                                         PhysicalProviderDetailsView,
                                         PhysicalProviderEditView)
 from cfme.modeling.base import BaseCollection
-from cfme.utils.appliance.implementations.ui import navigator, CFMENavigateStep
-from cfme.utils.pretty import Pretty
-from cfme.utils.varmeth import variable
+from cfme.utils import version
 from cfme.utils.appliance.implementations.ui import navigate_to
+from cfme.utils.appliance.implementations.ui import navigator, CFMENavigateStep
 from cfme.utils.log import logger
 from cfme.utils.net import resolve_hostname
+from cfme.utils.pretty import Pretty
+from cfme.utils.varmeth import variable
 
 
 @attr.s(hash=False)
@@ -157,5 +155,5 @@ class Add(CFMENavigateStep):
 
     def step(self):
         self.prerequisite_view.toolbar.configuration.item_select(
-            'Add a New Physical Provider'
+            'Add a New {} Provider'.format(self.obj.string_name)
         )

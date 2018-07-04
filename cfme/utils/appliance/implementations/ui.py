@@ -6,6 +6,12 @@ from time import sleep
 
 import os
 from cached_property import cached_property
+from cfme import exceptions
+from cfme.fixtures.pytest_store import store
+from cfme.utils.browser import manager
+from cfme.utils.log import logger, create_sublogger
+from cfme.utils.version import Version
+from cfme.utils.wait import wait_for
 from jsmin import jsmin
 from navmazing import Navigate, NavigateStep
 from selenium.common.exceptions import (
@@ -16,12 +22,6 @@ from widgetastic.browser import Browser, DefaultPlugin
 from widgetastic.utils import VersionPick
 from widgetastic.widget import Text, View
 
-from cfme import exceptions
-from cfme.utils.browser import manager
-from cfme.utils.log import logger, create_sublogger
-from cfme.utils.version import Version
-from cfme.utils.wait import wait_for
-from cfme.fixtures.pytest_store import store
 from . import Implementation
 
 VersionPick.VERSION_CLASS = Version
